@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Admin / show officials
+// ---------------------------------------------------------------------------
+model AdminUser {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_users")
+}
+
+// ---------------------------------------------------------------------------
+// Central dog registry. registrationNumber is the unique identifier for a dog.
+// Columns mirror the source registry export (REG NO, MICROCHIP, ... OWNER EMAIL).
+// A dog is registered once and reused across many shows via registrationNumber.
+// ---------------------------------------------------------------------------
+model Dog {
+  id                 Int      @id @default(autoincrement())
+  registrationNumber String   @unique // REG NO
+  microchip          String?  // MICROCHIP
+  tattoo             String?  // TATTOO
+  dnaIdNo            String?  // DNA ID NO
+  dnaProfileNo       String?  // DNA PROFILE NO
+  preQualifications  String?  // PRE QUALIFICATIONS
+  fullName           String   // FULLNAME
+  postQualifications String?  // POST QUALIFICATIONS
+  group              String?  // GROUP
+  breed              String?  // BREED
+  type               String?  // TYPE (e.g. PURE BRED)
+  sex                String?  // SEX (DOG / BITCH)
+  colour             String?  // COLOUR
+  status             String?  // STATUS (REGISTERED, DECEASED, ...)
+  country            String?  // COUNTRY
+  restriction        String?  // RESTRICTION
+  birthDate          DateTime? // BIRTH DATE
+  registerDate       DateTime? // REGISTER DATE
+  transferDate       DateTime? // TRANSFER DATE
+  sireRegNo          String?  // SIRE REGNO
+  sireFullName       String?  // SIRE FULLNAME
+  damRegNo           String?  // DAM REGNO
+  damFullName        String?  // DAM FULLNAME
+
+  breederMemberNo    String?  // BREEDER MEMBER NO
+  breederName        String?  // BREEDER NAME
+  breederPostalAddr  String?  // BREEDER POSTAL ADDRESS
+  breederPostAddr1   String?  // BREEDER POST ADDR 1
+  breederPostAddr2   String?  // BREEDER POST ADDR 2
+  breederPostAddr3   String?  // BREEDER POST ADDR 3
+  breederPostCode    String?  // BREEDER POST CODE
+  breederHomePhone   String?  // BREEDER HOME PHONE
+  breederEmail       String?  // BREEDER EMAIL
+
+  ownerMemberNo      String?  // OWNER MEMBER NO
+  ownerName          String?  // OWNER NAME
+  ownerPostalAddr    String?  // OWNER POSTAL ADDRESS
+  ownerPostAddr1     String?  // OWNER POST ADDR 1
+  ownerPostAddr2     String?  // OWNER POST ADDR 2
+  ownerPostAddr3     String?  // OWNER POST ADDR 3
+  ownerPostCode      String?  // OWNER POST CODE
+  ownerHomePhone     String?  // OWNER HOME PHONE
+  ownerEmail         String?  // OWNER EMAIL
+
+  externalId         String?  // ID (source system identifier)
+
+  // A dog added via a manual approved entry is flagged so officials know its provenance
+  source             String   @default("REGISTRY") // REGISTRY | MANUAL
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  entries            ShowEntry[]
+
+  @@index([fullName])
+  @@index([breed])
+  @@map("dogs")
+}
+
+// ---------------------------------------------------------------------------
+// A show. Multi-show from the start (2026 National, 2027 Regional, ...).
+// ---------------------------------------------------------------------------
+model Show {
+  id          Int       @id @default(autoincrement())
+  name        String
+  location    String?
+  showDate    DateTime
+  description String?
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  classes     ShowClass[]
+  entries     ShowEntry[]
+
+  @@map("shows")
+}
+
+// ---------------------------------------------------------------------------
+// Configurable class for a show. Age ranges & rules are NOT hard-coded in the
+// frontend; officials configure them per show. Age is evaluated on show date.
+// ---------------------------------------------------------------------------
+model ShowClass {
+  id           Int      @id @default(autoincrement())
+  showId       Int
+  show         Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  name         String   // e.g. "Baby Puppy", "Minor Puppy", "Junior", "Open", "Veteran"
+  sex          String   // DOG | BITCH  (a class is sex specific in the catalogue)
+  minAgeMonths Int      // inclusive lower bound of age on show date
+  maxAgeMonths Int?     // exclusive upper bound; null = no upper bound
+  ccEligible   Boolean  @default(true) // eligible for CC/RCC (Baby, Minor, Puppy, Neutered are not)
+  sortOrder    Int      @default(0)
+  rules        String?  // free-text additional rules / notes
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  entries      ShowEntry[]
+
+  @@map("show_classes")
+}
+
+// ---------------------------------------------------------------------------
+// Configurable grade options (Excellent, Very Good, ...). Reusable across shows.
+// ---------------------------------------------------------------------------
+model Grade {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries   ShowEntry[]
+
+  @@map("grades")
+}
+
+// ---------------------------------------------------------------------------
+// One record per dog per show. Grading & critique live here (per show entry),
+// never permanently on the Dog.
+// ---------------------------------------------------------------------------
+model ShowEntry {
+  id               Int         @id @default(autoincrement())
+  showId           Int
+  show             Show        @relation(fields: [showId], references: [id], onDelete: Cascade)
+
+  // For registry dogs this links to the central Dog record. Manual entries may
+  // not link to a Dog until approved (then a Dog record is created & linked).
+  dogId            Int?
+  dog              Dog?        @relation(fields: [dogId], references: [id])
+
+  // Snapshot / manual entry fields captured at entry time so a pending entry is
+  // fully described even before a Dog record exists. Mirrors the KUSA entry form.
+  registrationNumber String
+  dogName          String
+  sex              String
+  dateOfBirth      DateTime
+  breed            String?
+  colour           String?
+  qualifications   String?     // titles / qualifications (e.g. CH)
+  microchip        String?
+  tattoo           String?
+  sireName         String?
+  damName          String?
+  breederName      String?
+  ownerName        String?
+  ownerKusaNo      String?     // KUSA member number of the registered owner
+
+  // Exhibitor contact (no login required, captured on the entry form)
+  exhibitorName    String
+  exhibitorEmail   String?
+  exhibitorPhone   String?
+  // "Tick if not for publication" consent flags from the entry form
+  telNotForPublication   Boolean @default(false)
+  emailNotForPublication Boolean @default(false)
+
+  isManualEntry    Boolean     @default(false)
+  pedigreeDocPath  String?     // uploaded pedigree/registration document
+  entryFormPath    String?     // completed official entry form (any format)
+
+  status           EntryStatus @default(PENDING)
+  rejectionReason  String?
+  correctionNote   String?     // request-correction message to exhibitor
+  duplicateOverride Boolean    @default(false)
+
+  classId          Int?
+  showClass        ShowClass?  @relation(fields: [classId], references: [id])
+
+  catalogueNumber  Int?        // numeric order within sex (1, 2, 3, ...)
+  catalogueCode    String?     // display code with sex prefix, e.g. "D1", "B7"
+
+  gradeId          Int?
+  grade            Grade?      @relation(fields: [gradeId], references: [id])
+
+  critique         Critique?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@unique([showId, sex, catalogueNumber])
+  @@index([showId, status])
+  @@index([registrationNumber])
+  @@map("show_entries")
+}
+
+enum EntryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+  COMPLETED
+}
+
+// ---------------------------------------------------------------------------
+// Judge critique, associated with a specific show entry (and therefore Show,
+// Dog, Class). Can be edited before publishing.
+// ---------------------------------------------------------------------------
+model Critique {
+  id          Int       @id @default(autoincrement())
+  showEntryId Int       @unique
+  showEntry   ShowEntry @relation(fields: [showEntryId], references: [id], onDelete: Cascade)
+  judgeName   String
+  critiqueDate DateTime @default(now())
+  text        String
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("critiques")
+}
+
+// ---------------------------------------------------------------------------
+// Public contact form messages
+// ---------------------------------------------------------------------------
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contact_messages")
+}

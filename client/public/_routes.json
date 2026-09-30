@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": ["/static/*", "/images/*", "/forms/*", "/asset-manifest.json", "/favicon.ico", "/manifest.json", "/robots.txt", "/crc-logo.png", "/crc-photo-1.jpg", "/crc-photo-2.jpg", "/table-mountain.jpg"]
+}

@@ -1,0 +1,29 @@
+node_modules/
+**/node_modules/
+
+# Environment files (never commit secrets)
+.env
+**/.env
+**/.env.local
+**/.env.production
+server/.env
+client/.env
+
+# Build output
+dist/
+build/
+**/build/
+
+# Uploaded documents (runtime data)
+uploads/
+**/uploads/
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+
+# Local data artifacts (do not commit the registry export)
+*.xlsx
+_*.js

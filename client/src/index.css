@@ -1,0 +1,396 @@
+:root {
+  --navy: #1f3a5f;
+  --navy-dark: #16293f;
+  --accent: #c8a24b;         /* muted gold */
+  --accent-soft: #d8c08a;    /* champagne */
+  --bg: #f3efe7;             /* warm ivory */
+  --card: #fffdf9;           /* near-white / warm white */
+  --text: #23272e;           /* deep charcoal */
+  --muted: #6b7280;
+  --border: #e7e2d6;         /* light beige border */
+  --slate: #7d94ad;          /* pale slate blue */
+  --danger: #b91c1c;
+  --success: #15803d;
+  --warn: #b45309;
+}
+
+* { box-sizing: border-box; }
+
+html, body { min-height: 100%; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+  line-height: 1.5;
+  /*
+    Premium editorial multi-layer background:
+    - lighter warm centre draws the eye to the content
+    - darker champagne/slate edges frame it
+    - soft radial layers (not a flat linear gradient)
+  */
+  background-color: #e4dccb;
+  background-image:
+    radial-gradient(115% 85% at 50% 10%, rgba(255, 253, 249, 0.98) 0%, rgba(243, 239, 231, 0.55) 40%, rgba(228, 221, 206, 0) 72%),
+    radial-gradient(80% 65% at 12% 6%, rgba(125, 148, 173, 0.38) 0%, rgba(125, 148, 173, 0) 55%),
+    radial-gradient(80% 65% at 90% 95%, rgba(200, 162, 75, 0.34) 0%, rgba(200, 162, 75, 0) 55%),
+    linear-gradient(180deg, #ddd3bf 0%, #ede6d8 32%, #e7dfcf 68%, #d6cbb2 100%);
+  background-attachment: fixed;
+}
+
+/* Oversized, blurred dog silhouette texture behind everything (~7% opacity).
+   The image URL is set at runtime via the SiteBackground component so CRA serves
+   it from /public rather than trying to bundle it. */
+.site-bg-texture {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-position: center 18%;
+  background-size: 105% auto;
+  opacity: 0.22;
+  filter: blur(3px) grayscale(20%) sepia(8%);
+}
+
+/* Gentle vignette so edges stay darker and richer. */
+.site-bg-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(120% 100% at 50% 45%, rgba(0, 0, 0, 0) 50%, rgba(35, 39, 46, 0.20) 100%);
+}
+
+a { color: var(--navy); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 1rem; }
+
+/* Navbar */
+.navbar {
+  background: var(--navy);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.navbar .container { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.navbar .brand { color: #fff; font-weight: 700; font-size: 1.15rem; }
+.navbar nav { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+.navbar nav a { color: #dbe4f0; font-size: 0.95rem; }
+.navbar nav a.active, .navbar nav a:hover { color: #fff; text-decoration: none; }
+
+/* Footer */
+.footer { background: var(--navy-dark); color: #c7d2e0; margin-top: 3rem; padding: 1.5rem 0; font-size: 0.9rem; }
+
+/* Hero */
+.hero {
+  background: linear-gradient(135deg, var(--navy), var(--navy-dark));
+  color: #fff;
+  padding: 3.5rem 0;
+  text-align: center;
+}
+.hero h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+.hero p { color: #cfdaea; max-width: 640px; margin: 0 auto 1.5rem; }
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: var(--navy);
+  color: #fff;
+  transition: background 0.15s;
+}
+.btn:hover { background: var(--navy-dark); text-decoration: none; }
+.btn.accent { background: var(--accent); color: #1a1a1a; }
+.btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn.danger { background: var(--danger); }
+.btn.success { background: var(--success); }
+.btn.sm { padding: 0.35rem 0.7rem; font-size: 0.85rem; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Cards — clean near-white surface, subtle transparency, soft shadow */
+.card {
+  background: rgba(255, 253, 249, 0.86);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(231, 226, 214, 0.9);
+  border-radius: 14px;
+  padding: 1.35rem 1.5rem;
+  margin-bottom: 1.15rem;
+  box-shadow: 0 10px 30px rgba(35, 39, 46, 0.07), 0 2px 6px rgba(35, 39, 46, 0.04);
+}
+.grid { display: grid; gap: 1rem; }
+.grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 800px) {
+  .grid.cols-3, .grid.cols-2 { grid-template-columns: 1fr; }
+}
+
+/* Forms */
+label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.25rem; }
+input, select, textarea {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+}
+.form-row { margin-bottom: 1rem; }
+textarea { min-height: 120px; resize: vertical; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; background: transparent; }
+th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+th { background: rgba(240, 236, 226, 0.9); font-weight: 600; }
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(231, 226, 214, 0.9);
+  border-radius: 14px;
+  background: rgba(255, 253, 249, 0.86);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(35, 39, 46, 0.07);
+  margin-bottom: 1.15rem;
+}
+
+/* Badges */
+.badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.badge.PENDING { background: #fef3c7; color: var(--warn); }
+.badge.APPROVED { background: #dcfce7; color: var(--success); }
+.badge.REJECTED { background: #fee2e2; color: var(--danger); }
+.badge.WITHDRAWN { background: #e5e7eb; color: #374151; }
+.badge.COMPLETED { background: #dbeafe; color: #1e40af; }
+
+/* Catalogue */
+.cat-card { border-left: 4px solid var(--accent); }
+.cat-no { font-size: 1.4rem; font-weight: 700; color: var(--navy); }
+.section-title {
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.4rem;
+  margin: 1.75rem 0 0.75rem;
+  letter-spacing: 0.02em;
+}
+.muted { color: var(--muted); font-size: 0.85rem; }
+
+/* Admin layout */
+.admin-shell { display: flex; min-height: 100vh; }
+.admin-sidebar { width: 220px; background: var(--navy-dark); color: #cdd8e6; padding: 1rem 0; }
+.admin-sidebar .brand { color: #fff; font-weight: 700; padding: 0 1.25rem 1rem; display: block; }
+.admin-sidebar a { display: block; color: #cdd8e6; padding: 0.6rem 1.25rem; font-size: 0.92rem; }
+.admin-sidebar a.active, .admin-sidebar a:hover { background: rgba(255,255,255,0.08); color: #fff; text-decoration: none; }
+.admin-main { flex: 1; padding: 1.5rem; overflow-x: hidden; }
+@media (max-width: 700px) {
+  .admin-shell { flex-direction: column; }
+  .admin-sidebar { width: 100%; display: flex; flex-wrap: wrap; }
+  .admin-sidebar .brand { width: 100%; }
+}
+
+.stat { text-align: center; }
+.stat .num { font-size: 2rem; font-weight: 700; color: var(--navy); }
+.flex { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.between { justify-content: space-between; }
+.spacer { flex: 1; }
+.pill-nav { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.pill-nav button { border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 0.35rem 0.9rem; cursor: pointer; }
+.pill-nav button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.loading { padding: 2rem; text-align: center; color: var(--muted); }
+.error-text { color: var(--danger); font-size: 0.9rem; }
+
+/* Catalogue entry — printed-catalogue style boxed rows */
+.cat-class-title { text-align: center; margin: 1.75rem 0 0.75rem; font-size: 1.5rem; }
+
+.cat-entry {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  border: 1.5px solid #2b2f36;
+  border-bottom: none;
+  background: rgba(255, 253, 249, 0.9);
+}
+/* close the bottom border on the last entry in a class group */
+.cat-entry:last-child { border-bottom: 2px solid #111; }
+
+.cat-left {
+  border-right: 2px solid #111;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  font-weight: 700;
+}
+.cat-code {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  padding: 0.5rem;
+}
+.cat-class {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 1px solid #111;
+  padding: 0.5rem;
+}
+.cat-grade {
+  border-top: 2px solid #111;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  text-align: left;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+.cat-right { padding: 0.6rem 0.9rem; }
+.cat-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.15rem 0;
+  font-size: 0.9rem;
+}
+.cat-name { font-weight: 700; text-transform: uppercase; }
+.cat-lbl { color: var(--muted); margin-right: 0.35rem; }
+.cat-owner, .cat-breeder { white-space: nowrap; }
+.cat-parents em { font-style: italic; }
+
+.cat-critique {
+  margin-top: 0.5rem;
+  border-top: 1px solid #ccc;
+  padding-top: 0.4rem;
+  font-size: 0.9rem;
+}
+.cat-critique p { margin: 0.25rem 0; }
+
+@media (max-width: 640px) {
+  .cat-entry { grid-template-columns: 110px 1fr; }
+  .cat-line { flex-direction: column; gap: 0.1rem; }
+  .cat-owner, .cat-breeder { white-space: normal; }
+}
+
+/* Modal (critique popup) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+.modal {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  max-width: 560px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Cape Rottweiler Club branding */
+.navbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.brand-logo {
+  height: 40px;
+  width: auto;
+  background: #fff;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+/*
+  Table Mountain hero background.
+  This is a CSS-only Cape Town skyline (sunset gradient sky + flat-topped
+  mountain silhouette). To use a real photo instead, drop an image at
+  /public/table-mountain.jpg and set:
+    .hero-tablemountain { background-image: linear-gradient(rgba(15,30,50,.55), rgba(15,30,50,.75)), url('/table-mountain.jpg'); background-size: cover; background-position: center; }
+*/
+.hero-tablemountain {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1b3a5b 0%, #2c5a7a 45%, #d98a4e 80%, #e8b57a 100%);
+}
+/* Flat-topped Table Mountain silhouette */
+.hero-tablemountain::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 45%;
+  background:
+    /* Devil's Peak (right rise) and Lion's Head (left) suggested via layered polygons */
+    linear-gradient(90deg, transparent 0%, transparent 8%, #16293f 8%, #16293f 12%, transparent 12%),
+    #1c3049;
+  clip-path: polygon(
+    0% 100%,
+    0% 62%,
+    12% 58%,
+    18% 40%,
+    22% 34%,
+    30% 30%,
+    72% 30%,
+    80% 40%,
+    86% 55%,
+    100% 60%,
+    100% 100%
+  );
+  opacity: 0.9;
+}
+/* Keep hero text above the silhouette */
+.hero-tablemountain .container { position: relative; z-index: 1; }
+
+/* Hero logo */
+.hero-logo {
+  height: 110px;
+  width: auto;
+  margin: 0 auto 0.75rem;
+  display: block;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  padding: 10px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Print / Export to PDF ---- */
+.print-only { display: none; }
+
+@media print {
+  /* Hide everything chrome-related; show only the catalogue content. */
+  .navbar, .footer, .no-print { display: none !important; }
+
+  /* Neutralise the decorative page background for clean white paper. */
+  body { background: #fff !important; }
+  .site-bg-texture, .site-bg-vignette { display: none !important; }
+
+  .print-only { display: block; }
+  .print-header { text-align: center; margin-bottom: 1rem; }
+  .print-header h1 { margin: 0 0 0.25rem; }
+  .print-header p { margin: 0; color: #333; }
+
+  /* Keep catalogue entries and class blocks from splitting across pages. */
+  .cat-entry { break-inside: avoid; page-break-inside: avoid; }
+  .cat-class-title, .section-title { break-after: avoid; page-break-after: avoid; }
+
+  /* Cards/tables print flat without shadows or translucency. */
+  .card, .cat-entry, .table-wrap { box-shadow: none !important; background: #fff !important; backdrop-filter: none !important; }
+
+  main.container { max-width: 100% !important; padding: 0 !important; }
+
+  @page { margin: 14mm; }
+}
