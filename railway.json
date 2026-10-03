@@ -1,0 +1,9 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "preDeployCommand": "npm run db:setup"
+  }
+}

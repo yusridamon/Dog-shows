@@ -3,9 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "description": "Dog Show Entry & Catalogue system (client + server)",
+  "main": "server/src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "install:all": "npm --prefix server install && npm --prefix client install",
-    "server": "npm --prefix server run dev",
-    "client": "npm --prefix client start"
+    "postinstall": "npm --prefix server install",
+    "build": "npm --prefix server run db:generate",
+    "start": "npm --prefix server start",
+    "db:setup": "npm --prefix server run db:setup",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client start"
   }
 }
