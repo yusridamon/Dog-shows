@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -22,6 +22,9 @@ export default function AdminShowDetail() {
         name: res.data.show.name,
         location: res.data.show.location || '',
         showDate: res.data.show.showDate.slice(0, 10),
+        entriesCloseAt: res.data.show.entriesCloseAt ? res.data.show.entriesCloseAt.slice(0, 16) : '',
+        judgeName: res.data.show.judgeName || '',
+        stewardName: res.data.show.stewardName || '',
         description: res.data.show.description || '',
         isPublished: res.data.show.isPublished,
       });
@@ -92,11 +95,15 @@ export default function AdminShowDetail() {
 
   return (
     <div>
+      <Link to="/admin/shows" className="btn ghost sm" style={{ marginBottom: '0.75rem', display: 'inline-block' }}>← Back to shows</Link>
       <div className="flex between" style={{ alignItems: 'flex-start' }}>
         <h1>{show.name}</h1>
-        <button className="btn danger" onClick={() => setShowDeleteModal(true)}>
-          Delete show
-        </button>
+        <div className="flex">
+          <Link to={`/admin/shows/${id}/catalogue`} className="btn accent">Catalogue & judging</Link>
+          <button className="btn danger" onClick={() => setShowDeleteModal(true)}>
+            Delete show
+          </button>
+        </div>
       </div>
 
       {showDeleteModal && (
@@ -149,6 +156,19 @@ export default function AdminShowDetail() {
             <div className="form-row">
               <label>Show date</label>
               <input type="date" value={details.showDate} onChange={(e) => setDetails({ ...details, showDate: e.target.value })} />
+            </div>
+            <div className="form-row">
+              <label>Entries close at</label>
+              <input type="datetime-local" value={details.entriesCloseAt} onChange={(e) => setDetails({ ...details, entriesCloseAt: e.target.value })} />
+              <span className="muted">When online entries close. Leave blank for no deadline.</span>
+            </div>
+            <div className="form-row">
+              <label>Judge</label>
+              <input value={details.judgeName} onChange={(e) => setDetails({ ...details, judgeName: e.target.value })} placeholder="e.g. Mr Barron Africa" />
+            </div>
+            <div className="form-row">
+              <label>Steward</label>
+              <input value={details.stewardName} onChange={(e) => setDetails({ ...details, stewardName: e.target.value })} />
             </div>
             <div className="form-row" style={{ display: 'flex', alignItems: 'flex-end' }}>
               <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

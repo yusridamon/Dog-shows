@@ -41,7 +41,7 @@ exports.getShow = async (req, res) => {
 };
 
 exports.createShow = async (req, res) => {
-  const { name, location, showDate, description, isPublished } = req.body;
+  const { name, location, showDate, entriesCloseAt, judgeName, stewardName, description, isPublished } = req.body;
   if (!name || !showDate) {
     return res.status(400).json({ message: 'Name and show date are required.' });
   }
@@ -50,6 +50,9 @@ exports.createShow = async (req, res) => {
       name,
       location: location || null,
       showDate: new Date(showDate),
+      entriesCloseAt: entriesCloseAt ? new Date(entriesCloseAt) : null,
+      judgeName: judgeName || null,
+      stewardName: stewardName || null,
       description: description || null,
       isPublished: !!isPublished,
       // Every new show starts with the default KUSA class set (editable per show).
@@ -62,11 +65,16 @@ exports.createShow = async (req, res) => {
 
 exports.updateShow = async (req, res) => {
   const id = Number(req.params.id);
-  const { name, location, showDate, description, isPublished } = req.body;
+  const { name, location, showDate, entriesCloseAt, judgeName, stewardName, description, isPublished } = req.body;
   const data = {};
   if (name !== undefined) data.name = name;
   if (location !== undefined) data.location = location;
   if (showDate !== undefined) data.showDate = new Date(showDate);
+  if (entriesCloseAt !== undefined) {
+    data.entriesCloseAt = entriesCloseAt ? new Date(entriesCloseAt) : null;
+  }
+  if (judgeName !== undefined) data.judgeName = judgeName || null;
+  if (stewardName !== undefined) data.stewardName = stewardName || null;
   if (description !== undefined) data.description = description;
   if (isPublished !== undefined) data.isPublished = !!isPublished;
 
@@ -196,6 +204,28 @@ exports.listEntries = async (req, res) => {
     include: { show: true, showClass: true, grade: true, critique: true },
   });
   res.json({ entries });
+};
+
+/**
+ * Admin catalogue view for a show: the show (with classes) plus ALL entries
+ * regardless of status, ordered like the public catalogue. Used for the admin
+ * catalogue where grading and critiques are entered.
+ */
+exports.getShowCatalogue = async (req, res) => {
+  const showId = Number(req.params.id);
+  const show = await prisma.show.findUnique({
+    where: { id: showId },
+    include: { classes: { orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] } },
+  });
+  if (!show) return res.status(404).json({ message: 'Show not found.' });
+
+  const entries = await prisma.showEntry.findMany({
+    where: { showId },
+    orderBy: [{ classId: 'asc' }, { sex: 'asc' }, { catalogueNumber: 'asc' }, { createdAt: 'asc' }],
+    include: { showClass: true, grade: true, critique: true },
+  });
+
+  res.json({ show, entries });
 };
 
 exports.getEntry = async (req, res) => {

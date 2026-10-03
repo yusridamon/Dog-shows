@@ -17,14 +17,26 @@ app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
 // CLIENT_URL may be a single origin or a comma-separated list (production domain
-// plus localhost). Falls back to http://localhost:3000 for local dev.
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000')
+// plus localhost). Falls back to common localhost dev origins.
+const stripSlash = (s) => (s || '').replace(/\/$/, '');
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:3000,http://localhost:3001')
   .split(',')
-  .map((o) => o.trim())
+  .map((o) => stripSlash(o.trim()))
   .filter(Boolean);
+
+const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow non-browser / same-origin requests (no Origin header).
+    if (!origin) return callback(null, true);
+    const normalized = stripSlash(origin);
+    if (allowedOrigins.includes(normalized)) return callback(null, true);
+    // In development, allow any localhost/127.0.0.1 origin so the CRA proxy and
+    // direct browser access on any port work without friction.
+    if (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(normalized)) {
+      return callback(null, true);
+    }
     return callback(new Error(`Origin ${origin} not allowed by CORS`));
   },
 }));

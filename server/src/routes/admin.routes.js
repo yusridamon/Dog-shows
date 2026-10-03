@@ -12,6 +12,7 @@ router.get('/dashboard', admin.dashboard);
 router.get('/shows', admin.listShows);
 router.post('/shows', admin.createShow);
 router.get('/shows/:id', admin.getShow);
+router.get('/shows/:id/catalogue', admin.getShowCatalogue);
 router.put('/shows/:id', admin.updateShow);
 router.delete('/shows/:id', admin.deleteShow);
 

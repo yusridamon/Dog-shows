@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import api, { fileUrl } from '../../utils/api';
 
 export default function AdminEntryDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [entry, setEntry] = useState(null);
   const [grades, setGrades] = useState([]);
   const [reason, setReason] = useState('');
@@ -43,6 +44,7 @@ export default function AdminEntryDetail() {
 
   return (
     <div>
+      <button className="btn ghost sm" onClick={() => navigate(-1)} style={{ marginBottom: '0.75rem' }}>← Back</button>
       <div className="flex between">
         <h1>{entry.dogName}</h1>
         <span className={`badge ${entry.status}`}>{entry.status}</span>

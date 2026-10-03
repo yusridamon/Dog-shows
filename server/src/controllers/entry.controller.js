@@ -61,6 +61,14 @@ exports.createEntry = async (req, res) => {
   });
   if (!show) return res.status(404).json({ message: 'Show not found.' });
 
+  // Reject entries after the entry deadline has passed.
+  if (show.entriesCloseAt && new Date() > new Date(show.entriesCloseAt)) {
+    return res.status(403).json({
+      message: 'Entries for this show have closed.',
+      entriesClosed: true,
+    });
+  }
+
   const reg = String(registrationNumber).trim();
 
   // Duplicate protection for the same show.

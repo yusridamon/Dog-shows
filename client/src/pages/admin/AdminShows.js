@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
-const empty = { name: '', location: '', showDate: '', description: '', isPublished: false };
+const empty = { name: '', location: '', showDate: '', entriesCloseAt: '', judgeName: '', stewardName: '', description: '', isPublished: false };
 
 export default function AdminShows() {
   const [shows, setShows] = useState([]);
@@ -49,6 +49,19 @@ export default function AdminShows() {
               <label>Show date</label>
               <input type="date" value={form.showDate} onChange={(e) => setForm({ ...form, showDate: e.target.value })} required />
             </div>
+            <div className="form-row">
+              <label>Entries close at</label>
+              <input type="datetime-local" value={form.entriesCloseAt} onChange={(e) => setForm({ ...form, entriesCloseAt: e.target.value })} />
+              <span className="muted">When online entries close. Leave blank for no deadline.</span>
+            </div>
+            <div className="form-row">
+              <label>Judge</label>
+              <input value={form.judgeName} onChange={(e) => setForm({ ...form, judgeName: e.target.value })} placeholder="e.g. Mr Barron Africa" />
+            </div>
+            <div className="form-row">
+              <label>Steward</label>
+              <input value={form.stewardName} onChange={(e) => setForm({ ...form, stewardName: e.target.value })} />
+            </div>
             <div className="form-row" style={{ display: 'flex', alignItems: 'flex-end' }}>
               <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input type="checkbox" style={{ width: 'auto' }} checked={form.isPublished}
@@ -68,19 +81,30 @@ export default function AdminShows() {
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>Name</th><th>Date</th><th>Entries</th><th>Classes</th><th>Status</th><th /></tr>
+            <tr><th>Name</th><th>Date</th><th>Entries close</th><th>Entries</th><th>Classes</th><th>Status</th><th /></tr>
           </thead>
           <tbody>
-            {shows.map((s) => (
-              <tr key={s.id}>
-                <td>{s.name}</td>
-                <td>{format(new Date(s.showDate), 'PP')}</td>
-                <td>{s._count.entries}</td>
-                <td>{s._count.classes}</td>
-                <td>{s.isPublished ? 'Published' : 'Draft'}</td>
-                <td><Link to={`/admin/shows/${s.id}`} className="btn ghost sm">Manage</Link></td>
-              </tr>
-            ))}
+            {shows.map((s) => {
+              const closed = s.entriesCloseAt && new Date() > new Date(s.entriesCloseAt);
+              return (
+                <tr key={s.id}>
+                  <td>{s.name}</td>
+                  <td>{format(new Date(s.showDate), 'PP')}</td>
+                  <td>
+                    {s.entriesCloseAt
+                      ? <>{format(new Date(s.entriesCloseAt), 'PP p')}{closed && <span className="badge REJECTED" style={{ marginLeft: 6 }}>Closed</span>}</>
+                      : <span className="muted">No deadline</span>}
+                  </td>
+                  <td>{s._count.entries}</td>
+                  <td>{s._count.classes}</td>
+                  <td>{s.isPublished ? 'Published' : 'Draft'}</td>
+                  <td className="flex">
+                    <Link to={`/admin/shows/${s.id}`} className="btn ghost sm">Manage</Link>
+                    <Link to={`/admin/shows/${s.id}/catalogue`} className="btn sm">Catalogue</Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

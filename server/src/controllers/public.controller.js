@@ -7,7 +7,10 @@ exports.listShows = async (req, res) => {
   const shows = await prisma.show.findMany({
     where: { isPublished: true },
     orderBy: { showDate: 'desc' },
-    select: { id: true, name: true, location: true, showDate: true, description: true },
+    select: {
+      id: true, name: true, location: true, showDate: true,
+      entriesCloseAt: true, description: true,
+    },
   });
   res.json({ shows });
 };

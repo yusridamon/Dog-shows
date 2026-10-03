@@ -92,14 +92,17 @@ model Dog {
 // A show. Multi-show from the start (2026 National, 2027 Regional, ...).
 // ---------------------------------------------------------------------------
 model Show {
-  id          Int       @id @default(autoincrement())
-  name        String
-  location    String?
-  showDate    DateTime
-  description String?
-  isPublished Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             Int       @id @default(autoincrement())
+  name           String
+  location       String?
+  showDate       DateTime
+  entriesCloseAt DateTime? // when online entries close; null = no deadline set
+  judgeName      String?   // presiding judge for the show
+  stewardName    String?   // ring steward for the show
+  description    String?
+  isPublished    Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   classes     ShowClass[]
   entries     ShowEntry[]
