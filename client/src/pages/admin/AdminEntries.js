@@ -31,7 +31,12 @@ export default function AdminEntries() {
 
   return (
     <div>
-      <h1>Entries</h1>
+      <h1>Search entries</h1>
+      <p className="muted">
+        Search entries across every show, for example to find a dog by registration number. To
+        run a single show (approve, grade, critique), open the show and use its Catalogue &amp;
+        judging tab.
+      </p>
 
       <div className="card">
         <div className="grid cols-3">

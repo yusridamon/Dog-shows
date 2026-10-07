@@ -1,61 +1,65 @@
 import React, { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
+/**
+ * Read-only reference of the official KUSA grading chart. Grades are a national
+ * standard with fixed age bands and descriptions, so they are not edited here;
+ * this screen is a quick reference the judging team can consult.
+ */
 export default function AdminGrades() {
   const [grades, setGrades] = useState([]);
-  const [name, setName] = useState('');
-  const [sortOrder, setSortOrder] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const load = () => api.get('/admin/grades').then((res) => setGrades(res.data.grades));
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    api.get('/admin/grades')
+      .then((res) => setGrades(res.data.grades))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const add = async (e) => {
-    e.preventDefault();
-    try {
-      await api.post('/admin/grades', { name, sortOrder: sortOrder || 0 });
-      toast.success('Grade added.');
-      setName(''); setSortOrder('');
-      load();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not add grade.');
-    }
-  };
-
-  const remove = async (id) => {
-    if (!window.confirm('Delete this grade?')) return;
-    await api.delete(`/admin/grades/${id}`);
-    load();
-  };
+  if (loading) return <div className="loading">Loading grades…</div>;
 
   return (
     <div>
-      <h1>Grades</h1>
-      <p className="muted">Grades are configurable and reusable across shows. They attach to a show entry, never to the dog itself.</p>
-
-      <div className="card">
-        <form onSubmit={add} className="flex">
-          <input placeholder="Grade name" value={name} onChange={(e) => setName(e.target.value)} required style={{ maxWidth: 240 }} />
-          <input placeholder="Order" type="number" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={{ maxWidth: 100 }} />
-          <button className="btn">Add grade</button>
-        </form>
-      </div>
+      <h1>Grading reference</h1>
+      <p className="muted">
+        The official KUSA grading chart. Grades attach to a show entry (never to the dog itself)
+        and are recorded per class in each show's Catalogue &amp; judging tab. Age is the dog's
+        age in months on the show date.
+      </p>
 
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Order</th><th>Active</th><th /></tr></thead>
+          <thead>
+            <tr>
+              <th>Age</th>
+              <th>Grading</th>
+              <th>English</th>
+              <th>German</th>
+              <th>Description</th>
+            </tr>
+          </thead>
           <tbody>
-            {grades.map((g) => (
-              <tr key={g.id}>
-                <td>{g.name}</td>
-                <td>{g.sortOrder}</td>
-                <td>{g.isActive ? 'Yes' : 'No'}</td>
-                <td><button className="btn danger sm" onClick={() => remove(g.id)}>Delete</button></td>
-              </tr>
-            ))}
+            {grades.map((g) => {
+              let age = '—';
+              if (g.minAgeMonths != null && g.maxAgeMonths != null) age = `${g.minAgeMonths} to ${g.maxAgeMonths} months`;
+              else if (g.minAgeMonths != null) age = `Over ${g.minAgeMonths} months`;
+              return (
+                <tr key={g.id}>
+                  <td style={{ whiteSpace: 'nowrap' }}>{age}</td>
+                  <td style={{ fontWeight: 700 }}>{g.name}</td>
+                  <td>{g.englishDescription || ''}</td>
+                  <td>{g.germanName || ''}</td>
+                  <td style={{ fontSize: '0.85rem' }}>{g.explanation || ''}</td>
+                </tr>
+              );
+            })}
+            {grades.length === 0 && <tr><td colSpan="5" className="muted">No grades configured.</td></tr>}
           </tbody>
         </table>
       </div>
+      <p className="muted" style={{ marginTop: '0.5rem' }}>
+        Placings are entered alongside the grade, shown as V1, V2, SG3 and so on in the catalogue.
+      </p>
     </div>
   );
 }

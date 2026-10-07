@@ -57,7 +57,7 @@ function ShowCard({ show, past }) {
       )}
 
       <div className="flex">
-        {canEnter && <Link to="/enter" className="btn sm">Enter a dog</Link>}
+        {canEnter && <Link to={`/enter?show=${show.id}`} className="btn sm">Enter a dog</Link>}
         {!canEnter && !past && <span className="btn sm" style={{ opacity: 0.5, pointerEvents: 'none' }}>Entries closed</span>}
         <Link to={`/catalogue/${show.id}`} className="btn ghost sm">Catalogue</Link>
       </div>

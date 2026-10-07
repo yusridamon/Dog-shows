@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
@@ -55,12 +56,18 @@ export default function EnterDogPage() {
   });
   const [busy, setBusy] = useState(false);
   const [duplicate, setDuplicate] = useState(false);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    const preselect = searchParams.get('show');
     api.get('/shows').then((res) => {
       setShows(res.data.shows);
-      if (res.data.shows.length) setShowId(String(res.data.shows[0].id));
+      if (res.data.shows.length) {
+        const match = preselect && res.data.shows.find((s) => String(s.id) === String(preselect));
+        setShowId(String(match ? match.id : res.data.shows[0].id));
+      }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load the selected show's configured classes (with age ranges) for the dropdown.

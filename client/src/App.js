@@ -16,7 +16,6 @@ import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminShows from './pages/admin/AdminShows';
 import AdminShowDetail from './pages/admin/AdminShowDetail';
-import AdminShowCatalogue from './pages/admin/AdminShowCatalogue';
 import AdminEntries from './pages/admin/AdminEntries';
 import AdminEntryDetail from './pages/admin/AdminEntryDetail';
 import AdminGrades from './pages/admin/AdminGrades';
@@ -52,7 +51,7 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="shows" element={<AdminShows />} />
         <Route path="shows/:id" element={<AdminShowDetail />} />
-        <Route path="shows/:id/catalogue" element={<AdminShowCatalogue />} />
+        <Route path="shows/:id/catalogue" element={<AdminShowDetail />} />
         <Route path="entries" element={<AdminEntries />} />
         <Route path="entries/:id" element={<AdminEntryDetail />} />
         <Route path="grades" element={<AdminGrades />} />
