@@ -14,6 +14,8 @@ export default function AdminShowDetail() {
   const [busy, setBusy] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [missingCritiques, setMissingCritiques] = useState(null); // array | null
+  const [pendingEntries, setPendingEntries] = useState(null); // array | null
 
   const load = () =>
     api.get(`/admin/shows/${id}`).then((res) => {
@@ -47,6 +49,22 @@ export default function AdminShowDetail() {
     }
   };
 
+  const releaseCatalogue = async (release) => {
+    if (release && !window.confirm('Release the catalogue to the public? Every entry must be approved or rejected first.')) return;
+    if (!release && !window.confirm('Hide the catalogue from the public again?')) return;
+    try {
+      const res = await api.post(`/admin/shows/${id}/release-catalogue`, { release });
+      toast.success(res.data.message);
+      load();
+    } catch (err) {
+      if (err.response?.data?.pendingEntries) {
+        setPendingEntries(err.response.data.pendingEntries);
+      } else {
+        toast.error(err.response?.data?.message || 'Action failed.');
+      }
+    }
+  };
+
   const addClass = async (e) => {
     e.preventDefault();
     try {
@@ -72,7 +90,12 @@ export default function AdminShowDetail() {
       const res = await api.post(`/admin/shows/${id}/publish-critiques`, { publish });
       toast.success(res.data.message);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Action failed.');
+      // If publishing was blocked by missing critiques, show them in a popup.
+      if (err.response?.data?.missingCritiques) {
+        setMissingCritiques(err.response.data.missingCritiques);
+      } else {
+        toast.error(err.response?.data?.message || 'Action failed.');
+      }
     }
   };
 
@@ -127,6 +150,74 @@ export default function AdminShowDetail() {
           </div>
         </div>
       )}
+
+      {missingCritiques && (
+        <div className="modal-overlay" onClick={() => setMissingCritiques(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, color: 'var(--warn)' }}>Critiques not yet complete</h3>
+            <p>These dogs still need a judge's critique before you can publish:</p>
+            <div style={{ maxHeight: '45vh', overflowY: 'auto' }}>
+              <ul>
+                {missingCritiques.map((m, i) => (
+                  <li key={i}>
+                    <strong>{m.catalogueCode ? `${m.catalogueCode} · ` : ''}{m.dogName}</strong>
+                    <span className="muted"> — {m.className}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="flex" style={{ justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <button className="btn" onClick={() => setMissingCritiques(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pendingEntries && (
+        <div className="modal-overlay" onClick={() => setPendingEntries(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, color: 'var(--warn)' }}>Entries still pending</h3>
+            <p>The catalogue cannot be released while these entries are pending. Approve or reject each one first:</p>
+            <div style={{ maxHeight: '45vh', overflowY: 'auto' }}>
+              <ul>
+                {pendingEntries.map((p, i) => (
+                  <li key={i}>
+                    <strong>{p.dogName}</strong>
+                    <span className="muted"> — {p.className} · {p.registrationNumber}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="muted">Resolve each pending entry, then release the catalogue.</p>
+            <div className="flex" style={{ justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <Link to={`/admin/shows/${id}/catalogue`} className="btn accent">Go to catalogue</Link>
+              <button className="btn ghost" onClick={() => setPendingEntries(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <h3>Public catalogue</h3>
+        <p className="muted">
+          The show is visible to exhibitors so they can enter. The public catalogue only
+          appears once you release it, and it can only be released after every entry has been
+          approved or rejected (nothing left pending).
+        </p>
+        <div className="flex" style={{ alignItems: 'center' }}>
+          {show.catalogueReleased ? (
+            <>
+              <span className="badge APPROVED">Catalogue released</span>
+              <button className="btn ghost" onClick={() => releaseCatalogue(false)}>Hide catalogue</button>
+            </>
+          ) : (
+            <>
+              <span className="badge PENDING">Catalogue not released</span>
+              <button className="btn accent" onClick={() => releaseCatalogue(true)}>Release catalogue</button>
+            </>
+          )}
+        </div>
+      </div>
 
       <div className="card">
         <h3>Judge critiques</h3>

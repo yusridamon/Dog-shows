@@ -4,6 +4,25 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import api, { fileUrl } from '../../utils/api';
 
+// Whole months between DOB and show date (dog's age on the show date).
+function ageInMonths(dateOfBirth, showDate) {
+  if (!dateOfBirth || !showDate) return null;
+  const dob = new Date(dateOfBirth);
+  const ref = new Date(showDate);
+  if (isNaN(dob) || isNaN(ref)) return null;
+  let m = (ref.getFullYear() - dob.getFullYear()) * 12 + (ref.getMonth() - dob.getMonth());
+  if (ref.getDate() < dob.getDate()) m -= 1;
+  return Math.max(0, m);
+}
+
+// Is a grade eligible for a dog of the given age (months on show date)?
+function gradeEligible(grade, age) {
+  if (age == null) return true; // can't compute — allow all
+  const minOk = grade.minAgeMonths == null || age >= grade.minAgeMonths;
+  const maxOk = grade.maxAgeMonths == null || age < grade.maxAgeMonths;
+  return minOk && maxOk;
+}
+
 export default function AdminShowCatalogue() {
   const { id } = useParams();
   const [show, setShow] = useState(null);
@@ -78,12 +97,15 @@ export default function AdminShowCatalogue() {
         <div key={sexGroup.sex}>
           <h2 className="section-title">{sexGroup.label}</h2>
           {sexGroup.classes.map((cls) => (
-            <div key={cls.className}>
-              <h3>{sexGroup.label}: {cls.className}</h3>
-              {cls.entries.map((e) => (
-                <AdminCatalogueRow key={e.id} entry={e} grades={grades} onChange={load} />
-              ))}
-            </div>
+            <ClassBlock
+              key={cls.className}
+              showId={id}
+              label={`${sexGroup.label}: ${cls.className}`}
+              entries={cls.entries}
+              grades={grades}
+              showDate={show.showDate}
+              onChange={load}
+            />
           ))}
         </div>
       ))}
@@ -91,8 +113,66 @@ export default function AdminShowCatalogue() {
   );
 }
 
-function AdminCatalogueRow({ entry, grades, onChange }) {
+function ClassBlock({ showId, label, entries, grades, showDate, onChange }) {
+  // Only approved/completed entries count toward release readiness.
+  const inRing = entries.filter((e) => e.status === 'APPROVED' || e.status === 'COMPLETED');
+  const graded = inRing.filter((e) => e.gradeId && e.placing != null);
+  const allDone = inRing.length > 0 && graded.length === inRing.length;
+  const released = inRing.length > 0 && inRing.every((e) => e.resultsReleased);
+  // Need the class id + sex for the release call (from any entry in the group).
+  const sample = inRing[0] || entries[0];
+  const classId = sample?.classId;
+  const sex = sample?.sex;
+
+  const release = async () => {
+    try {
+      const res = await api.post(`/admin/shows/${showId}/release-class`, { classId, sex });
+      toast.success(res.data.message);
+      onChange();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not release.');
+    }
+  };
+  const unrelease = async () => {
+    try {
+      const res = await api.post(`/admin/shows/${showId}/unrelease-class`, { classId, sex });
+      toast.success(res.data.message);
+      onChange();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not hide results.');
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex between" style={{ alignItems: 'center' }}>
+        <h3 style={{ margin: '1rem 0 0.5rem' }}>{label}</h3>
+        <div className="flex">
+          {released ? (
+            <>
+              <span className="badge APPROVED">Results released</span>
+              <button className="btn ghost sm" onClick={unrelease}>Hide results</button>
+            </>
+          ) : (
+            <>
+              <span className="muted">{graded.length}/{inRing.length} graded &amp; placed</span>
+              <button className="btn accent sm" disabled={!allDone || !classId} onClick={release}>
+                Release grades &amp; placings
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      {entries.map((e) => (
+        <AdminCatalogueRow key={e.id} entry={e} grades={grades} showDate={showDate} onChange={onChange} />
+      ))}
+    </div>
+  );
+}
+
+function AdminCatalogueRow({ entry, grades, showDate, onChange }) {
   const [gradeId, setGradeId] = useState(entry.gradeId ? String(entry.gradeId) : '');
+  const [placing, setPlacing] = useState(entry.placing != null ? String(entry.placing) : '');
   const [judgeName, setJudgeName] = useState(entry.critique?.judgeName || '');
   const [critiqueText, setCritiqueText] = useState(entry.critique?.text || '');
   const [saving, setSaving] = useState(false);
@@ -140,14 +220,18 @@ function AdminCatalogueRow({ entry, grades, onChange }) {
       {approved ? (
         <div className="grid cols-2">
           <div className="form-row">
-            <label>Grade</label>
+            <label>Grade &amp; placing {entry.resultsReleased && <span className="badge APPROVED">Released</span>}</label>
             <div className="flex">
-              <select value={gradeId} onChange={(e) => setGradeId(e.target.value)}>
+              <select value={gradeId} onChange={(e) => setGradeId(e.target.value)} style={{ maxWidth: 150 }}>
                 <option value="">No grade</option>
-                {grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                {grades
+                  .filter((g) => gradeEligible(g, ageInMonths(entry.dateOfBirth, showDate)))
+                  .map((g) => <option key={g.id} value={g.id}>{g.name} — {g.englishDescription}</option>)}
               </select>
+              <input type="number" min="1" placeholder="Placing" value={placing}
+                onChange={(e) => setPlacing(e.target.value)} style={{ maxWidth: 90 }} />
               <button className="btn sm" disabled={saving}
-                onClick={() => act(() => api.post(`/admin/entries/${entry.id}/grade`, { gradeId: gradeId || null }), 'Grade saved.')}>
+                onClick={() => act(() => api.post(`/admin/entries/${entry.id}/grade`, { gradeId: gradeId || null, placing: placing || null }), 'Grade & placing saved.')}>
                 Save
               </button>
             </div>

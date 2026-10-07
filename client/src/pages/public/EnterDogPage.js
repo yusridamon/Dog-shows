@@ -47,7 +47,9 @@ export default function EnterDogPage() {
   const [dog, setDog] = useState(null);
   const [manual, setManual] = useState(emptyManual);
   const [pedigree, setPedigree] = useState(null);
-  const [entryForm, setEntryForm] = useState(null);
+  const [declaration, setDeclaration] = useState({
+    signatureName: '', declarationAgreed: false, paymentMethod: 'ELECTRONIC TRANSFER', catalogueFull: false,
+  });
   const [exhibitor, setExhibitor] = useState({
     exhibitorName: '', exhibitorEmail: '', exhibitorPhone: '',
   });
@@ -135,7 +137,10 @@ export default function EnterDogPage() {
     fd.append('exhibitorEmail', exhibitor.exhibitorEmail);
     fd.append('exhibitorPhone', exhibitor.exhibitorPhone);
     fd.append('classId', classId);
-    if (entryForm) fd.append('entryForm', entryForm);
+    fd.append('signatureName', declaration.signatureName);
+    fd.append('declarationAgreed', String(declaration.declarationAgreed));
+    fd.append('paymentMethod', declaration.paymentMethod);
+    fd.append('catalogueFull', String(declaration.catalogueFull));
     if (override) fd.append('duplicateOverride', 'true');
 
     if (step === 'manual') {
@@ -164,7 +169,8 @@ export default function EnterDogPage() {
       if (!pedigree) return toast.error('Please upload a pedigree document.');
     }
     if (!classId) return toast.error('Please select a class to enter.');
-    if (!entryForm) return toast.error('Please upload the completed official entry form.');
+    if (!declaration.declarationAgreed) return toast.error('Please read and agree to the declaration.');
+    if (!declaration.signatureName.trim()) return toast.error('Please sign by entering your full name.');
     setBusy(true);
     try {
       await api.post('/entries', buildFormData(override), {
@@ -184,7 +190,8 @@ export default function EnterDogPage() {
   };
 
   const reset = () => {
-    setReg(''); setDog(null); setManual(emptyManual); setPedigree(null); setEntryForm(null); setClassId('');
+    setReg(''); setDog(null); setManual(emptyManual); setPedigree(null); setClassId('');
+    setDeclaration({ signatureName: '', declarationAgreed: false, paymentMethod: 'ELECTRONIC TRANSFER', catalogueFull: false });
     setExhibitor({ exhibitorName: '', exhibitorEmail: '', exhibitorPhone: '' });
     setStep('lookup'); setDuplicate(false);
   };
@@ -259,7 +266,7 @@ export default function EnterDogPage() {
             classes={showClasses} value={classId} onChange={setClassId}
             sex={dog.sex} dateOfBirth={dog.birthDate} showDate={selectedShow?.showDate}
           />
-          <EntryFormUpload entryForm={entryForm} setEntryForm={setEntryForm} />
+          <DeclarationStep declaration={declaration} setDeclaration={setDeclaration} />
           <ExhibitorFields exhibitor={exhibitor} setExhibitor={setExhibitor} />
           <DuplicateNotice duplicate={duplicate} busy={busy} onOverride={() => submit(true)} />
           {!duplicate && (
@@ -336,7 +343,7 @@ export default function EnterDogPage() {
             classes={showClasses} value={classId} onChange={setClassId}
             sex={manual.sex} dateOfBirth={manual.dateOfBirth} showDate={selectedShow?.showDate}
           />
-          <EntryFormUpload entryForm={entryForm} setEntryForm={setEntryForm} />
+          <DeclarationStep declaration={declaration} setDeclaration={setDeclaration} />
           <ExhibitorFields exhibitor={exhibitor} setExhibitor={setExhibitor} />
           <DuplicateNotice duplicate={duplicate} busy={busy} onOverride={() => submit(true)} />
           {!duplicate && (
@@ -396,23 +403,74 @@ function ClassSelect({ classes, value, onChange, sex, dateOfBirth, showDate }) {
   );
 }
 
-function EntryFormUpload({ entryForm, setEntryForm }) {
+const DECLARATION_POINTS = [
+  'I am aware that only Members of the Kennel Union are entitled to enter and have dogs in their registered ownership compete in any Championship event licensed by the Kennel Union (save for Breed Classes at Specialist Club Championship Shows), and I am in full compliance at the time of entry and up to exhibition.',
+  'The dog hereby entered is eligible to be exhibited at a KUSA-licensed Dog Show and its Registration Certificate is free from any endorsement restricting such exhibition.',
+  'By entering, exhibiting or handling a dog at any Show held under a Kennel Union licence I agree to be bound by the KUSA Constitution in its entirety, including all Schedules.',
+  'I am aware a dog that has suffered from or been exposed to any infectious or contagious disease within six weeks prior to the Show may not attend, and contravention may render me liable to disciplinary action.',
+  'The dog is entered to be exhibited entirely at my own risk, and I shall ensure it is at all times properly confined or on a lead/leash unless authorised by a Judge in the ring.',
+  'I accept full responsibility for the safety and behaviour of the dog and accept personal liability for any claim in respect of damage or injury caused by the dog and/or my failure to control it.',
+  'I indemnify KUSA, its Officials and Officers, the show-holding Club and its Officers and employees against all claims arising from any damage, injury or harm caused by the dog or any act or omission by me or my agents.',
+  'I am responsible and liable for any damage, injury or harm caused by any minor child for whom I am legally responsible who accompanies me or handles the dog.',
+  'I am aware that persons on whom persona non grata status has been imposed by KUSA are not permitted to attend Shows.',
+  'My appointed agents, handlers, representatives, guests and assistants are bound by this declaration, and I indemnify the aforesaid parties against all claims, damages and losses.',
+  'I am familiar with Schedule 3 Regulation 44 regarding cancellation of Shows and the refund or retention of Entry Fees, and I unreservedly accept it.',
+  'This Entry Form and the information on it is complete, accurate and true, and free of misstatement or false declaration.',
+  'Should any information be found inaccurate or fraudulent, I am aware I may be liable for disciplinary action in terms of Schedule 1 Rule 4, with awards withdrawn and/or cancelled.',
+];
+
+function DeclarationStep({ declaration, setDeclaration }) {
+  const set = (k, v) => setDeclaration({ ...declaration, [k]: v });
   return (
     <div className="card" style={{ background: '#fbf8f1', borderColor: '#e7dfcf' }}>
-      <h4 style={{ marginTop: 0 }}>Official entry form (required)</h4>
+      <h4 style={{ marginTop: 0 }}>Official entry form &amp; declaration</h4>
       <p className="muted" style={{ marginTop: 0 }}>
-        Download the official entry form, fill it in, then upload the completed form below.
-        You can upload it in any format (PDF, Word, photo or scan).
+        We complete the official entry form from the details above and generate a signed copy for you,
+        so there is nothing to print or scan. You can view the blank official form below if you wish.
       </p>
       <p style={{ margin: '0 0 0.75rem' }}>
         <a href={`${process.env.PUBLIC_URL}/forms/official-entry-form.pdf`} target="_blank" rel="noreferrer" className="btn ghost sm">
-          ⬇ Download official entry form
+          View blank official form
         </a>
       </p>
+
+      <div className="grid cols-2">
+        <div className="form-row">
+          <label>Method of payment</label>
+          <select value={declaration.paymentMethod} onChange={(e) => set('paymentMethod', e.target.value)}>
+            <option>ELECTRONIC TRANSFER</option>
+            <option>DIRECT DEPOSIT</option>
+            <option>CASH</option>
+            <option>OTHER</option>
+          </select>
+        </div>
+        <div className="form-row" style={{ display: 'flex', alignItems: 'flex-end' }}>
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontWeight: 400 }}>
+            <input type="checkbox" style={{ width: 'auto' }} checked={declaration.catalogueFull}
+              onChange={(e) => set('catalogueFull', e.target.checked)} />
+            Order a full catalogue
+          </label>
+        </div>
+      </div>
+
+      <label>Declaration by the Registered Owner / Authorised Agent</label>
+      <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8, padding: '0.6rem 0.8rem', background: '#fff', fontSize: '0.8rem', margin: '0.25rem 0 0.75rem' }}>
+        <ol style={{ margin: 0, paddingLeft: '1.1rem' }}>
+          {DECLARATION_POINTS.map((p, i) => <li key={i} style={{ marginBottom: 6 }}>{p}</li>)}
+        </ol>
+      </div>
+
+      <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontWeight: 400, marginBottom: '0.75rem' }}>
+        <input type="checkbox" style={{ width: 'auto', marginTop: 3 }} checked={declaration.declarationAgreed}
+          onChange={(e) => set('declarationAgreed', e.target.checked)} />
+        I have read and understood the full declaration above and agree to it.
+      </label>
+
       <div className="form-row">
-        <label>Upload completed entry form</label>
-        <input type="file" onChange={(e) => setEntryForm(e.target.files[0] || null)} />
-        {entryForm && <span className="muted">Selected: {entryForm.name}</span>}
+        <label>Signature — type your full name</label>
+        <input value={declaration.signatureName} onChange={(e) => set('signatureName', e.target.value)}
+          placeholder="Full name and surname" />
+        <span className="muted">By typing your full name you are signing this entry electronically.</span>
       </div>
     </div>
   );
@@ -451,3 +509,4 @@ function DuplicateNotice({ duplicate, busy, onOverride }) {
     </div>
   );
 }
+

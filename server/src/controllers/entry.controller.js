@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const { normaliseSex, ageInMonths } = require('../lib/classAssignment');
+const { generateEntryFormPdf } = require('../lib/entryFormPdf');
 
 /**
  * True if a class is eligible for a dog of the given sex/DOB on the show date.
@@ -46,6 +47,10 @@ exports.createEntry = async (req, res) => {
     telNotForPublication,
     emailNotForPublication,
     classId,
+    signatureName,
+    declarationAgreed,
+    paymentMethod,
+    catalogueFull,
     duplicateOverride,
   } = req.body;
 
@@ -102,14 +107,16 @@ exports.createEntry = async (req, res) => {
     });
   }
 
-  // The completed official entry form is required for ALL entries.
-  if (!entryFormPath) {
+  const asBool = (v) => v === true || v === 'true';
+
+  // The declaration must be agreed and signed (electronic signature) for ALL entries.
+  const agreed = asBool(declarationAgreed);
+  const signName = (signatureName || exhibitorName || '').trim();
+  if (!agreed || !signName) {
     return res.status(400).json({
-      message: 'Please upload the completed official entry form to submit your entry.',
+      message: 'You must read and agree to the declaration and sign by entering your full name.',
     });
   }
-
-  const asBool = (v) => v === true || v === 'true';
 
   // Source the descriptive fields from the registry where possible, else the form.
   const data = {
@@ -139,7 +146,12 @@ exports.createEntry = async (req, res) => {
     emailNotForPublication: asBool(emailNotForPublication),
     isManualEntry,
     pedigreeDocPath,
-    entryFormPath,
+    entryFormPath, // optional uploaded fallback
+    signatureName: signName,
+    declarationAgreed: agreed,
+    signedAt: new Date(),
+    paymentMethod: paymentMethod || null,
+    catalogueFull: asBool(catalogueFull),
     duplicateOverride: override,
     status: 'PENDING',
   };
@@ -166,12 +178,22 @@ exports.createEntry = async (req, res) => {
   }
   data.classId = chosenClass.id;
 
-  const entry = await prisma.showEntry.create({ data });
+  const entry = await prisma.showEntry.create({ data, include: { showClass: true } });
+
+  // Generate the auto-populated, electronically signed official entry form (PDF).
+  // Non-blocking: if generation fails, the entry still succeeds.
+  let generatedFormPath = null;
+  try {
+    generatedFormPath = await generateEntryFormPdf(entry, show);
+    await prisma.showEntry.update({ where: { id: entry.id }, data: { generatedFormPath } });
+  } catch (err) {
+    console.error('Entry form PDF generation failed:', err.message);
+  }
 
   res.status(201).json({
     message: isManualEntry
       ? 'Entry submitted and is pending approval.'
       : 'Entry submitted successfully.',
-    entry,
+    entry: { ...entry, generatedFormPath },
   });
 };

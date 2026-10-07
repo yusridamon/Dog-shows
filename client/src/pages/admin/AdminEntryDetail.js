@@ -73,15 +73,27 @@ export default function AdminEntryDetail() {
           <div><strong>Contact:</strong> {entry.exhibitorEmail || entry.exhibitorPhone || '—'}</div>
         </div>
         <p style={{ marginTop: '0.75rem' }} className="flex">
-          {entry.entryFormPath ? (
-            <a href={fileUrl(entry.entryFormPath)} target="_blank" rel="noreferrer" className="btn ghost sm">View entry form</a>
-          ) : <span className="muted">No entry form uploaded.</span>}
+          {entry.generatedFormPath && (
+            <a href={fileUrl(entry.generatedFormPath)} target="_blank" rel="noreferrer" className="btn ghost sm">View signed entry form</a>
+          )}
+          {entry.entryFormPath && (
+            <a href={fileUrl(entry.entryFormPath)} target="_blank" rel="noreferrer" className="btn ghost sm">Uploaded form</a>
+          )}
+          {!entry.generatedFormPath && !entry.entryFormPath && <span className="muted">No entry form.</span>}
           {entry.isManualEntry && (
             entry.pedigreeDocPath
               ? <a href={fileUrl(entry.pedigreeDocPath)} target="_blank" rel="noreferrer" className="btn ghost sm">View pedigree document</a>
               : <span className="muted">No pedigree uploaded.</span>
           )}
         </p>
+        {entry.signatureName && (
+          <p className="muted" style={{ marginTop: '0.25rem' }}>
+            Electronically signed by <strong>{entry.signatureName}</strong>
+            {entry.signedAt ? ` on ${format(new Date(entry.signedAt), 'PPp')}` : ''}
+            {entry.declarationAgreed ? ' · declaration agreed' : ''}
+            {entry.paymentMethod ? ` · payment: ${entry.paymentMethod}` : ''}
+          </p>
+        )}
         {entry.rejectionReason && <p className="error-text">Rejected: {entry.rejectionReason}</p>}
         {entry.correctionNote && <p className="muted">Correction requested: {entry.correctionNote}</p>}
       </div>

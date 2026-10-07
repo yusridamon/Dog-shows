@@ -123,8 +123,18 @@ export default function CataloguePage() {
 
       {loading && <div className="loading no-print">Loading catalogue…</div>}
 
-      {!loading && data && data.entries.length === 0 && (
-        <p className="muted no-print">No approved entries yet for this show.</p>
+      {!loading && data && data.catalogueReleased === false && (
+        <div className="card no-print" style={{ textAlign: 'center' }}>
+          <h3 style={{ marginTop: 0 }}>Catalogue not yet available</h3>
+          <p className="muted">
+            The catalogue for this show has not been released yet. It will appear here once entries
+            have been finalised. Please check back closer to the show.
+          </p>
+        </div>
+      )}
+
+      {!loading && data && data.catalogueReleased !== false && data.entries.length === 0 && (
+        <p className="muted no-print">No approved entries in this catalogue.</p>
       )}
 
       {/* Print-only header for the exported PDF */}
@@ -202,7 +212,7 @@ function CatalogueCard({ entry, onShowCritique }) {
         <div className="cat-code">{entry.catalogueCode || `#${entry.catalogueNumber ?? '—'}`}</div>
         <div className="cat-class">{entry.showClass ? entry.showClass.name : ''}</div>
         <div className="cat-grade">
-          Grade:{entry.grade ? ` ${entry.grade.name}` : ''}
+          Grade:{entry.grade ? ` ${entry.grade.name}${entry.placing != null ? entry.placing : ''}` : ''}
         </div>
       </div>
 

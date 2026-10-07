@@ -1,21 +1,43 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
+
+const links = [
+  { to: '/', label: 'Home', end: true },
+  { to: '/shows', label: 'Shows' },
+  { to: '/rules', label: 'Rules' },
+  { to: '/enter', label: 'Enter Dog' },
+  { to: '/catalogue', label: 'Catalogue' },
+  { to: '/contact', label: 'Contact' },
+];
 
 export default function Navbar() {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
   return (
     <header className="navbar">
-      <div className="container">
-        <NavLink to="/" className="brand">
+      <div className="container navbar-bar">
+        <NavLink to="/" className="brand" onClick={close}>
           <img src="/crc-logo.png" alt="Cape Rottweiler Club" className="brand-logo" />
-          <span>Cape Rottweiler Club</span>
+          <span className="brand-text">Cape Rottweiler Club</span>
         </NavLink>
-        <nav>
-          <NavLink to="/" end>Home</NavLink>
-          <NavLink to="/shows">Shows</NavLink>
-          <NavLink to="/rules">Rules</NavLink>
-          <NavLink to="/enter">Enter Dog</NavLink>
-          <NavLink to="/catalogue">Catalogue</NavLink>
-          <NavLink to="/contact">Contact</NavLink>
+
+        <button
+          className="nav-toggle"
+          aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        <nav className={`nav-links ${open ? 'open' : ''}`}>
+          {links.map((l) => (
+            <NavLink key={l.to} to={l.to} end={l.end} onClick={close}>
+              {l.label}
+            </NavLink>
+          ))}
         </nav>
       </div>
     </header>

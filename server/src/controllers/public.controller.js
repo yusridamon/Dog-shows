@@ -1,6 +1,17 @@
 const prisma = require('../lib/prisma');
 
 /**
+ * Public grading chart (code, descriptions, age bands, explanation).
+ */
+exports.listGrades = async (req, res) => {
+  const grades = await prisma.grade.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: 'asc' },
+  });
+  res.json({ grades });
+};
+
+/**
  * List published shows for the public site.
  */
 exports.listShows = async (req, res) => {
@@ -76,6 +87,12 @@ exports.getCatalogue = async (req, res) => {
   });
   if (!show) return res.status(404).json({ message: 'Show not found.' });
 
+  // The catalogue is only visible once an admin has released it (which requires
+  // every entry to be approved or rejected first).
+  if (!show.catalogueReleased) {
+    return res.json({ show, entries: [], catalogueReleased: false });
+  }
+
   const where = {
     showId,
     status: { in: ['APPROVED', 'COMPLETED'] },
@@ -102,13 +119,16 @@ exports.getCatalogue = async (req, res) => {
     },
   });
 
-  // Only publish critiques that have been published.
+  // Hide grade/placing until the class results are released, and only show
+  // critiques that have been published.
   const cleaned = entries.map((e) => ({
     ...e,
+    grade: e.resultsReleased ? e.grade : null,
+    placing: e.resultsReleased ? e.placing : null,
     critique: e.critique && e.critique.isPublished ? e.critique : null,
   }));
 
-  res.json({ show, entries: cleaned });
+  res.json({ show, entries: cleaned, catalogueReleased: true });
 };
 
 /**

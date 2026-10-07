@@ -13,12 +13,17 @@ const api = axios.create({
   timeout: 20000,
 });
 
+// Origin where uploaded/generated files are served (/uploads/...). In production
+// this is REACT_APP_API_URL. In local dev the API runs on :5001 (the CRA proxy
+// does not forward /uploads), so point directly at it.
+const FILE_ORIGIN = API_ORIGIN || `${window.location.protocol}//${window.location.hostname}:5001`;
+
 // Resolve a server-relative upload path (e.g. "/uploads/pedigrees/x.pdf") to an
-// absolute URL against the API origin, so document links work in production.
+// absolute URL against the API/file origin, so document links work everywhere.
 export function fileUrl(pathFromApi) {
   if (!pathFromApi) return pathFromApi;
   if (/^https?:\/\//i.test(pathFromApi)) return pathFromApi;
-  return `${API_ORIGIN}${pathFromApi}`;
+  return `${FILE_ORIGIN}${pathFromApi}`;
 }
 
 api.interceptors.request.use((config) => {

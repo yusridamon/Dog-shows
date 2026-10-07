@@ -73,13 +73,67 @@ a:hover { text-decoration: underline; }
   color: #fff;
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 30;
 }
-.navbar .container { display: flex; align-items: center; justify-content: space-between; height: 60px; }
-.navbar .brand { color: #fff; font-weight: 700; font-size: 1.15rem; }
-.navbar nav { display: flex; gap: 1.25rem; flex-wrap: wrap; }
-.navbar nav a { color: #dbe4f0; font-size: 0.95rem; }
-.navbar nav a.active, .navbar nav a:hover { color: #fff; text-decoration: none; }
+.navbar-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 60px;
+  gap: 1rem;
+}
+.navbar .brand {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.navbar .brand:hover { text-decoration: none; }
+.brand-logo { height: 38px; width: auto; background: #fff; border-radius: 6px; padding: 3px; flex-shrink: 0; }
+.brand-text { line-height: 1.1; }
+
+.nav-links { display: flex; gap: 1.1rem; align-items: center; }
+.nav-links a { color: #dbe4f0; font-size: 0.95rem; white-space: nowrap; }
+.nav-links a.active, .nav-links a:hover { color: #fff; text-decoration: none; }
+
+/* Hamburger toggle (hidden on desktop) */
+.nav-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 6px;
+}
+
+@media (max-width: 760px) {
+  .nav-toggle { display: inline-flex; }
+  .brand-text { font-size: 1rem; }
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--navy-dark);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+  }
+  .nav-links.open { max-height: 70vh; }
+  .nav-links a {
+    padding: 0.9rem 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 1rem;
+  }
+  .nav-links a.active { background: rgba(255, 255, 255, 0.08); }
+}
 
 /* Footer */
 .footer { background: var(--navy-dark); color: #c7d2e0; margin-top: 3rem; padding: 1.5rem 0; font-size: 0.9rem; }
@@ -182,15 +236,42 @@ th { background: rgba(240, 236, 226, 0.9); font-weight: 600; }
 
 /* Admin layout */
 .admin-shell { display: flex; min-height: 100vh; }
-.admin-sidebar { width: 220px; background: var(--navy-dark); color: #cdd8e6; padding: 1rem 0; }
-.admin-sidebar .brand { color: #fff; font-weight: 700; padding: 0 1.25rem 1rem; display: block; }
+.admin-sidebar { width: 220px; background: var(--navy-dark); color: #cdd8e6; padding: 1rem 0; flex-shrink: 0; }
+.admin-sidebar-head { display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem 1rem; }
+.admin-sidebar .brand { color: #fff; font-weight: 700; display: block; }
+.admin-close { display: none; background: transparent; border: none; color: #fff; cursor: pointer; }
 .admin-sidebar a { display: block; color: #cdd8e6; padding: 0.6rem 1.25rem; font-size: 0.92rem; }
 .admin-sidebar a.active, .admin-sidebar a:hover { background: rgba(255,255,255,0.08); color: #fff; text-decoration: none; }
-.admin-main { flex: 1; padding: 1.5rem; overflow-x: hidden; }
-@media (max-width: 700px) {
-  .admin-shell { flex-direction: column; }
-  .admin-sidebar { width: 100%; display: flex; flex-wrap: wrap; }
-  .admin-sidebar .brand { width: 100%; }
+.admin-main { flex: 1; padding: 1.5rem; overflow-x: hidden; min-width: 0; }
+
+/* Top bar: hamburger only shows on mobile */
+.admin-topbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.admin-menu-btn { display: none; background: var(--navy); color: #fff; border: none; border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+.admin-backdrop { display: none; }
+
+@media (max-width: 760px) {
+  .admin-menu-btn { display: inline-flex; }
+  .admin-close { display: inline-flex; }
+  /* Sidebar becomes an off-canvas drawer */
+  .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 50;
+    overflow-y: auto;
+  }
+  .admin-sidebar.open { transform: translateX(0); }
+  .admin-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 40;
+  }
 }
 
 .stat { text-align: center; }
@@ -297,20 +378,6 @@ th { background: rgba(240, 236, 226, 0.9); font-weight: 600; }
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-}
-
-/* Cape Rottweiler Club branding */
-.navbar .brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-.brand-logo {
-  height: 40px;
-  width: auto;
-  background: #fff;
-  border-radius: 6px;
-  padding: 3px;
 }
 
 /*

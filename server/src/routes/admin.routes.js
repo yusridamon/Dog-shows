@@ -13,6 +13,7 @@ router.get('/shows', admin.listShows);
 router.post('/shows', admin.createShow);
 router.get('/shows/:id', admin.getShow);
 router.get('/shows/:id/catalogue', admin.getShowCatalogue);
+router.post('/shows/:id/release-catalogue', admin.releaseCatalogue);
 router.put('/shows/:id', admin.updateShow);
 router.delete('/shows/:id', admin.deleteShow);
 
@@ -36,6 +37,10 @@ router.post('/entries/:id/reject', admin.rejectEntry);
 router.post('/entries/:id/request-correction', admin.requestCorrection);
 router.post('/entries/:id/withdraw', admin.withdrawEntry);
 router.post('/entries/:id/grade', admin.setGrade);
+
+// Release / hide grades + placings for a single class of a show
+router.post('/shows/:id/release-class', admin.releaseClassResults);
+router.post('/shows/:id/unrelease-class', admin.unreleaseClassResults);
 router.put('/entries/:id/critique', admin.upsertCritique);
 
 // Bulk-publish all critiques for a show (end-of-show release)

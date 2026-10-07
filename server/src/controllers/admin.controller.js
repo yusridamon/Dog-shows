@@ -82,6 +82,43 @@ exports.updateShow = async (req, res) => {
   res.json({ show });
 };
 
+/**
+ * Release the digital catalogue for a show to the public. Blocked while any
+ * entry is still PENDING (every entry must be approved or rejected first).
+ * Returns the list of pending dogs so the admin can resolve them.
+ */
+exports.releaseCatalogue = async (req, res) => {
+  const id = Number(req.params.id);
+  const release = req.body.release === undefined ? true : !!req.body.release;
+
+  if (release) {
+    const pending = await prisma.showEntry.findMany({
+      where: { showId: id, status: 'PENDING' },
+      include: { showClass: true },
+      orderBy: [{ classId: 'asc' }, { sex: 'asc' }, { createdAt: 'asc' }],
+    });
+    if (pending.length > 0) {
+      return res.status(400).json({
+        message: 'Every entry must be approved or rejected before the catalogue can be released.',
+        pendingEntries: pending.map((e) => ({
+          dogName: e.dogName,
+          registrationNumber: e.registrationNumber,
+          className: e.showClass ? `${e.sex === 'BITCH' ? 'Females' : 'Males'}: ${e.showClass.name}` : (e.sex || 'Unassigned'),
+        })),
+      });
+    }
+  }
+
+  const show = await prisma.show.update({
+    where: { id },
+    data: { catalogueReleased: release },
+  });
+  res.json({
+    show,
+    message: release ? 'Catalogue released to the public.' : 'Catalogue hidden from the public.',
+  });
+};
+
 exports.deleteShow = async (req, res) => {
   const id = Number(req.params.id);
   await prisma.show.delete({ where: { id } });
@@ -386,19 +423,81 @@ exports.updateEntry = async (req, res) => {
 };
 
 /**
- * Record grading against the show entry (never permanently against the dog).
+ * Record grading and placing against the show entry (never permanently on the
+ * dog). Results stay hidden from the public catalogue until the class is
+ * released via releaseClassResults.
  */
 exports.setGrade = async (req, res) => {
   const id = Number(req.params.id);
-  const { gradeId, markCompleted } = req.body;
+  const { gradeId, placing } = req.body;
   const data = { gradeId: gradeId ? Number(gradeId) : null };
-  if (markCompleted) data.status = 'COMPLETED';
+  if (placing !== undefined) {
+    data.placing = placing === '' || placing == null ? null : Number(placing);
+  }
   const entry = await prisma.showEntry.update({
     where: { id },
     data,
     include: { grade: true },
   });
   res.json({ entry });
+};
+
+/**
+ * Release the grades and placings for a single class (one sex + class) of a
+ * show. Only succeeds when EVERY approved/completed entry in that class has
+ * both a grade and a placing. On release, those entries become publicly visible
+ * with their results and are marked COMPLETED.
+ */
+exports.releaseClassResults = async (req, res) => {
+  const showId = Number(req.params.id);
+  const { classId, sex } = req.body;
+  if (!classId || !sex) {
+    return res.status(400).json({ message: 'classId and sex are required.' });
+  }
+
+  const entries = await prisma.showEntry.findMany({
+    where: {
+      showId,
+      classId: Number(classId),
+      sex,
+      status: { in: ['APPROVED', 'COMPLETED'] },
+    },
+  });
+
+  if (entries.length === 0) {
+    return res.status(400).json({ message: 'There are no approved entries in this class to release.' });
+  }
+
+  const incomplete = entries.filter((e) => !e.gradeId || e.placing == null);
+  if (incomplete.length > 0) {
+    return res.status(400).json({
+      message: `All dogs in this class must have a grade and placing before releasing. ${incomplete.length} still outstanding.`,
+      outstanding: incomplete.length,
+    });
+  }
+
+  await prisma.showEntry.updateMany({
+    where: { id: { in: entries.map((e) => e.id) } },
+    data: { resultsReleased: true, status: 'COMPLETED' },
+  });
+
+  res.json({ message: `Released results for ${entries.length} dog(s) in this class.`, count: entries.length });
+};
+
+/**
+ * Unrelease (hide again) a class's results, e.g. to correct a mistake.
+ */
+exports.unreleaseClassResults = async (req, res) => {
+  const showId = Number(req.params.id);
+  const { classId, sex } = req.body;
+  if (!classId || !sex) {
+    return res.status(400).json({ message: 'classId and sex are required.' });
+  }
+  const result = await prisma.showEntry.updateMany({
+    where: { showId, classId: Number(classId), sex, resultsReleased: true },
+    data: { resultsReleased: false },
+  });
+  res.json({ message: `Hid results for ${result.count} dog(s).`, count: result.count });
 };
 
 // ---------------------------------------------------------------------------
@@ -447,6 +546,30 @@ exports.upsertCritique = async (req, res) => {
 exports.publishShowCritiques = async (req, res) => {
   const showId = Number(req.params.showId);
   const publish = req.body.publish === undefined ? true : !!req.body.publish;
+
+  // When publishing, every approved/completed entry must have a critique with text.
+  if (publish) {
+    const entries = await prisma.showEntry.findMany({
+      where: { showId, status: { in: ['APPROVED', 'COMPLETED'] } },
+      include: { showClass: true, critique: true },
+      orderBy: [{ classId: 'asc' }, { sex: 'asc' }, { catalogueNumber: 'asc' }],
+    });
+
+    const missing = entries
+      .filter((e) => !e.critique || !e.critique.text || !e.critique.text.trim())
+      .map((e) => ({
+        dogName: e.dogName,
+        catalogueCode: e.catalogueCode,
+        className: e.showClass ? `${e.sex === 'BITCH' ? 'Females' : 'Males'}: ${e.showClass.name}` : 'Unassigned',
+      }));
+
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: 'All critiques must be filled in before publishing.',
+        missingCritiques: missing,
+      });
+    }
+  }
 
   const result = await prisma.critique.updateMany({
     where: { showEntry: { showId } },

@@ -100,7 +100,8 @@ model Show {
   judgeName      String?   // presiding judge for the show
   stewardName    String?   // ring steward for the show
   description    String?
-  isPublished    Boolean   @default(false)
+  isPublished    Boolean   @default(false) // show visible to exhibitors (can enter)
+  catalogueReleased Boolean @default(false) // public catalogue released (all entries resolved)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -137,12 +138,17 @@ model ShowClass {
 // Configurable grade options (Excellent, Very Good, ...). Reusable across shows.
 // ---------------------------------------------------------------------------
 model Grade {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  name               String   @unique // code, e.g. V, SG, VV
+  germanName         String?  // e.g. Vorzüglich
+  englishDescription String?  // e.g. Excellent
+  explanation        String?  // full chart explanation text
+  minAgeMonths       Int?     // eligibility lower bound (months on show date)
+  maxAgeMonths       Int?     // eligibility upper bound; null = no upper bound
+  sortOrder          Int      @default(0)
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   entries   ShowEntry[]
 
@@ -190,7 +196,17 @@ model ShowEntry {
 
   isManualEntry    Boolean     @default(false)
   pedigreeDocPath  String?     // uploaded pedigree/registration document
-  entryFormPath    String?     // completed official entry form (any format)
+  entryFormPath    String?     // uploaded completed official entry form (optional fallback)
+  generatedFormPath String?    // system-generated, auto-populated + signed entry form (PDF)
+
+  // Digital signature / declaration (electronic signature per the KUSA form)
+  signatureName    String?     // typed full name used as the electronic signature
+  declarationAgreed Boolean    @default(false) // confirmed reading & agreeing to the terms
+  signedAt         DateTime?   // timestamp of the signature
+
+  // Payment / catalogue options from the official form
+  paymentMethod    String?     // ELECTRONIC TRANSFER | CASH | DIRECT DEPOSIT | OTHER
+  catalogueFull    Boolean     @default(false) // ordered a full catalogue
 
   status           EntryStatus @default(PENDING)
   rejectionReason  String?
@@ -205,6 +221,8 @@ model ShowEntry {
 
   gradeId          Int?
   grade            Grade?      @relation(fields: [gradeId], references: [id])
+  placing          Int?        // placing within the class, e.g. 1 => "V1"
+  resultsReleased  Boolean     @default(false) // grade+placing visible publicly
 
   critique         Critique?
 

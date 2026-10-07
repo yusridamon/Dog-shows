@@ -67,12 +67,14 @@ function ShowCard({ show, past }) {
 
 export default function ShowsPage() {
   const [shows, setShows] = useState([]);
+  const [grades, setGrades] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.get('/shows')
       .then((res) => setShows(res.data.shows))
       .finally(() => setLoading(false));
+    api.get('/grades').then((res) => setGrades(res.data.grades)).catch(() => {});
   }, []);
 
   // Split into upcoming/current vs past based on the show date.
@@ -112,6 +114,44 @@ export default function ShowsPage() {
           <div className="grid cols-2">
             {past.map((s) => <ShowCard key={s.id} show={s} past />)}
           </div>
+        </>
+      )}
+
+      {grades.length > 0 && (
+        <>
+          <h2 className="section-title">Gradings explained</h2>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Age</th>
+                  <th>Grading</th>
+                  <th>English</th>
+                  <th>German</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grades.map((g) => {
+                  let age = '—';
+                  if (g.minAgeMonths != null && g.maxAgeMonths != null) age = `${g.minAgeMonths} to ${g.maxAgeMonths} months`;
+                  else if (g.minAgeMonths != null) age = `Over ${g.minAgeMonths} months`;
+                  return (
+                    <tr key={g.id}>
+                      <td style={{ whiteSpace: 'nowrap' }}>{age}</td>
+                      <td style={{ fontWeight: 700 }}>{g.name}</td>
+                      <td>{g.englishDescription || ''}</td>
+                      <td>{g.germanName || ''}</td>
+                      <td style={{ fontSize: '0.82rem' }}>{g.explanation || ''}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted" style={{ marginTop: '0.5rem' }}>
+            Placings are shown next to the grade in the catalogue, for example V1, V2, SG3.
+          </p>
         </>
       )}
     </div>
